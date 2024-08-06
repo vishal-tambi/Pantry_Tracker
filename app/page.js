@@ -1,6 +1,6 @@
 "use client";
 import { Box, Stack, Typography, Button, Modal, TextField } from "@mui/material";
-import { firestore } from "@/firebase";
+import { firestore } from "@/firebase"; // Ensure this is correct
 import { collection, query, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { useEffect, useState } from "react";
 
@@ -26,7 +26,7 @@ export default function Home() {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-  const [ItemsNames, setItemName] = useState('');
+  const [itemName, setItemName] = useState('');
 
   useEffect(() => {
     updatePantry();
@@ -37,9 +37,9 @@ export default function Home() {
     const pantryList = snapshot.docs.map(doc => ({
       id: doc.id,
       name: doc.data().name || '',
-    })); // Ensure we get an object with id and name
+    }));
     console.log(pantryList);
-    setPantry(pantryList); // Update state with names
+    setPantry(pantryList);
   };
 
   const addItems = async (itemName) => {
@@ -51,7 +51,7 @@ export default function Home() {
     try {
       await addDoc(collection(firestore, 'pantry'), { name: itemName });
       console.log(`Item added: ${itemName}`);
-      updatePantry(); // Refresh the pantry list after adding
+      updatePantry();
     } catch (error) {
       console.error('Error adding item: ', error);
     }
@@ -61,7 +61,7 @@ export default function Home() {
     try {
       await deleteDoc(doc(firestore, "pantry", id));
       console.log(`Item removed: ${id}`);
-      updatePantry(); // Refresh the pantry list after deleting
+      updatePantry();
     } catch (error) {
       console.error('Error removing item: ', error);
     }
@@ -93,13 +93,13 @@ export default function Home() {
               label="Items"
               variant="outlined"
               fullWidth
-              value={ItemsNames}
+              value={itemName}
               onChange={(e) => setItemName(e.target.value)}
             />
             <Button
               variant="outlined"
               onClick={async () => {
-                await addItems(ItemsNames);
+                await addItems(itemName);
                 setItemName('');
                 handleClose();
               }}
