@@ -27,6 +27,7 @@ export default function Home() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const [itemName, setItemName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     updatePantry();
@@ -34,10 +35,13 @@ export default function Home() {
 
   const updatePantry = async () => {
     const snapshot = await getDocs(collection(firestore, 'pantry'));
-    const pantryList = snapshot.docs.map(doc => ({
-      id: doc.id,
-      name: doc.data().name || '',
-    }));
+    const items = snapshot.docs.map(doc => doc.data().name || '');
+    const pantryList = Object.entries(
+      items.reduce((acc, item) => {
+        acc[item] = (acc[item] || 0) + 1;
+        return acc;
+      }, {})
+    ).map(([name, count]) => ({ name, count }));
     console.log(pantryList);
     setPantry(pantryList);
   };
@@ -57,15 +61,23 @@ export default function Home() {
     }
   };
 
-  const removeItem = async (id) => {
-    try {
-      await deleteDoc(doc(firestore, "pantry", id));
-      console.log(`Item removed: ${id}`);
-      updatePantry();
-    } catch (error) {
-      console.error('Error removing item: ', error);
+  const removeItem = async (name) => {
+    const snapshot = await getDocs(collection(firestore, 'pantry'));
+    const itemToDelete = snapshot.docs.find(doc => doc.data().name === name);
+    if (itemToDelete) {
+      try {
+        await deleteDoc(doc(firestore, "pantry", itemToDelete.id));
+        console.log(`Item removed: ${itemToDelete.id}`);
+        updatePantry();
+      } catch (error) {
+        console.error('Error removing item: ', error);
+      }
     }
   };
+
+  const filteredPantry = pantry.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <Box
@@ -114,6 +126,16 @@ export default function Home() {
         Add
       </Button>
 
+      <TextField
+        id="search-bar"
+        label="Search Items"
+        variant="outlined"
+        width="5px"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+
       <Box border={'1px solid #333'}>
         <Box width="800px" height="100px" bgcolor={'#ADD8E6'}>
           <Typography variant={'h2'} color={'#333'} textAlign={'center'}>
@@ -122,9 +144,9 @@ export default function Home() {
         </Box>
 
         <Stack width="800px" height="200px" spacing={2} sx={{ overflow: 'auto' }}>
-          {pantry.map((item) => (
+          {filteredPantry.map((item) => (
             <Box
-              key={item.id}
+              key={item.name}
               width="100%"
               height="100px"
               display={'flex'}
@@ -140,10 +162,11 @@ export default function Home() {
                 fontWeight={'500'}
               >
                 {typeof item.name === 'string' ? item.name.charAt(0).toUpperCase() + item.name.slice(1) : 'Invalid Item'}
+                {item.count > 1 && ` (x${item.count})`}
               </Typography>
               <Button
                 variant='contained'
-                onClick={() => removeItem(item.id)}
+                onClick={() => removeItem(item.name)}
               >
                 Remove
               </Button>
